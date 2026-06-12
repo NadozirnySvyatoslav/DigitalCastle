@@ -1,0 +1,17 @@
+[Unit]
+Description=DigitalCastle NVR
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=/opt/digitalcastle
+ExecStart=/opt/digitalcastle/digitalcastle
+Restart=on-failure
+RestartSec=5
+# не падати миттєво в циклі, якщо камера/мережа ще не готові
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target

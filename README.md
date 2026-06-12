@@ -197,13 +197,18 @@ AZURE_ENDPOINT=https://<ресурс>.cognitiveservices.azure.com/...
 
 ## 🍓 Розгортання на Raspberry Pi
 
-Архітектура ідеально лягає на Pi 5 (та навіть слабші) — камера кодує відео, Pi лише зберігає.
+Pi 5 стає автономним пристроєм: **WiFi** — аплінк, **Ethernet** — приватна мережа
+камери (Pi роздає DHCP + NAT), сервіс — у systemd з автозапуском.
 
-- **Крос-збірка:** `GOOS=linux GOARCH=arm64 go build -o digitalcastle ./cmd/nvr`
-  (pure-Go SQLite, без CGO — збирається без тулчейну).
-- **Накопичувач:** SSD/NVMe замість SD-картки (запис 24/7 зношує SD).
-- **Інтернет для бота:** Wi-Fi для інтернету, Ethernet — для камери.
-- **Автозапуск:** systemd-юніт.
+```bash
+# на ноутбуці, після прошивання Pi через rpi-imager (WiFi + SSH-ключ):
+./deploy/pi-deploy.sh svyat@digitalcastle.local
+```
+
+Скрипт крос-збере arm64-бінарник (pure-Go, без CGO), збере фронтенд, скопіює все
+на Pi і налаштує мережу + systemd. Повний покроковий гайд — у **[`deploy/README.md`](deploy/README.md)**.
+
+> Для запису 24/7 краще USB-SSD замість SD-картки (флешки зношуються від запису).
 
 ---
 
