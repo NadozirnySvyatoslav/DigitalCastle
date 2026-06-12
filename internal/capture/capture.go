@@ -14,13 +14,13 @@ import (
 )
 
 type Service struct {
-	cam      *camera.Client
+	cam      camera.Camera
 	store    *store.Store
 	dataDir  string
 	interval time.Duration
 }
 
-func New(cam *camera.Client, st *store.Store, dataDir string, interval time.Duration) *Service {
+func New(cam camera.Camera, st *store.Store, dataDir string, interval time.Duration) *Service {
 	return &Service{cam: cam, store: st, dataDir: dataDir, interval: interval}
 }
 

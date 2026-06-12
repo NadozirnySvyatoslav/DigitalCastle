@@ -5,16 +5,7 @@ import (
 	"encoding/xml"
 )
 
-// DeviceInfo — підмножина полів /ISAPI/System/deviceInfo.
-type DeviceInfo struct {
-	DeviceName      string `xml:"deviceName"`
-	Model           string `xml:"model"`
-	SerialNumber    string `xml:"serialNumber"`
-	MACAddress      string `xml:"macAddress"`
-	FirmwareVersion string `xml:"firmwareVersion"`
-}
-
-// DeviceInfo повертає інформацію про камеру.
+// DeviceInfo повертає інформацію про камеру (поля з /ISAPI/System/deviceInfo).
 func (c *Client) DeviceInfo(ctx context.Context) (*DeviceInfo, error) {
 	body, err := c.get(ctx, "/ISAPI/System/deviceInfo")
 	if err != nil {

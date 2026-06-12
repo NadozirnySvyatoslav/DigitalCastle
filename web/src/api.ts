@@ -1,8 +1,18 @@
+export interface Capabilities {
+  driver: string
+  lens: boolean
+  flip: boolean
+  hardware_motion: boolean
+  motion_config: boolean
+  time_sync: boolean
+}
+
 export interface Status {
   model: string
   firmware: string
   online: boolean
   motion_detection: boolean
+  capabilities: Capabilities
 }
 
 export interface Snapshot {

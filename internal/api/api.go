@@ -22,13 +22,13 @@ import (
 type Server struct {
 	cfg        *config.Config
 	configPath string
-	cam        *camera.Client
+	cam        camera.Camera
 	store      *store.Store
 	cap        *capture.Service
 	rec        *recorder.Recorder
 }
 
-func New(cfg *config.Config, configPath string, cam *camera.Client, st *store.Store, cap *capture.Service, rec *recorder.Recorder) *Server {
+func New(cfg *config.Config, configPath string, cam camera.Camera, st *store.Store, cap *capture.Service, rec *recorder.Recorder) *Server {
 	return &Server{cfg: cfg, configPath: configPath, cam: cam, store: st, cap: cap, rec: rec}
 }
 
@@ -67,12 +67,13 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	type status struct {
-		Model    string `json:"model"`
-		Firmware string `json:"firmware"`
-		Online   bool   `json:"online"`
-		Motion   bool   `json:"motion_detection"`
+		Model        string              `json:"model"`
+		Firmware     string              `json:"firmware"`
+		Online       bool                `json:"online"`
+		Motion       bool                `json:"motion_detection"`
+		Capabilities camera.Capabilities `json:"capabilities"`
 	}
-	st := status{}
+	st := status{Capabilities: s.cam.Capabilities()}
 	if di, err := s.cam.DeviceInfo(ctx); err == nil {
 		st.Model = di.Model
 		st.Firmware = di.FirmwareVersion
@@ -155,6 +156,10 @@ func (s *Server) handleClip(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLens(w http.ResponseWriter, r *http.Request) {
+	if !s.cam.Capabilities().Lens {
+		http.Error(w, "камера не підтримує керування об'єктивом", http.StatusNotImplemented)
+		return
+	}
 	var fn func(context.Context) error
 	switch r.PathValue("action") {
 	case "zoom_in":
@@ -177,6 +182,10 @@ func (s *Server) handleLens(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleFlip(w http.ResponseWriter, r *http.Request) {
+	if !s.cam.Capabilities().Flip {
+		http.Error(w, "камера не підтримує переворот зображення", http.StatusNotImplemented)
+		return
+	}
 	on, err := s.cam.ToggleFlip(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)

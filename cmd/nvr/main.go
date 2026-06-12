@@ -41,7 +41,19 @@ func main() {
 		log.Fatalf("конфіг: %v", err)
 	}
 
-	cam := camera.New(cfg.Camera.Host, cfg.Camera.Username, cfg.Camera.Password)
+	cam, err := camera.New(camera.Options{
+		Driver:          cfg.Camera.Type,
+		Host:            cfg.Camera.Host,
+		Username:        cfg.Camera.Username,
+		Password:        cfg.Camera.Password,
+		RTSPMain:        cfg.Camera.RTSPMain,
+		RTSPSub:         cfg.Camera.RTSPSub,
+		MotionThreshold: cfg.Camera.MotionThreshold,
+	})
+	if err != nil {
+		log.Fatalf("камера: %v", err)
+	}
+	log.Printf("камера: драйвер %q", cam.Capabilities().Driver)
 	configPath := *cfgPath
 
 	if *selftest {
@@ -92,7 +104,7 @@ func main() {
 	runDaemon(cfg, configPath, cam, st, cap)
 }
 
-func runDaemon(cfg *config.Config, configPath string, cam *camera.Client, st *store.Store, cap *capture.Service) {
+func runDaemon(cfg *config.Config, configPath string, cam camera.Camera, st *store.Store, cap *capture.Service) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -118,13 +130,19 @@ func runDaemon(cfg *config.Config, configPath string, cam *camera.Client, st *st
 		log.Println("daemon: Telegram не налаштовано (немає token або chat_id)")
 	}
 
-	// Переконуємось, що детектор руху увімкнено
-	if err := cam.SetMotionDetection(ctx, true); err != nil {
-		log.Printf("daemon: не вдалося увімкнути детектор руху: %v", err)
+	caps := cam.Capabilities()
+
+	// Переконуємось, що детектор руху увімкнено (де це підтримується)
+	if caps.MotionConfig {
+		if err := cam.SetMotionDetection(ctx, true); err != nil {
+			log.Printf("daemon: не вдалося увімкнути детектор руху: %v", err)
+		}
 	}
 
-	// Синхронізація годинника камери з ноутбука (камера без NTP) — одразу і щогодини
-	go syncCameraTime(ctx, cam)
+	// Синхронізація годинника камери — лише для камер, що це підтримують
+	if caps.TimeSync {
+		go syncCameraTime(ctx, cam)
+	}
 
 	// Планувальник знімків
 	go cap.Run(ctx)
@@ -155,7 +173,7 @@ func runDaemon(cfg *config.Config, configPath string, cam *camera.Client, st *st
 }
 
 // syncCameraTime тримає годинник камери в актуальному стані (без NTP).
-func syncCameraTime(ctx context.Context, cam *camera.Client) {
+func syncCameraTime(ctx context.Context, cam camera.Camera) {
 	sync := func() {
 		if err := cam.SyncTime(ctx, time.Now()); err != nil {
 			log.Printf("time: синхронізація: %v", err)
@@ -178,7 +196,7 @@ func syncCameraTime(ctx context.Context, cam *camera.Client) {
 
 // watchMotionWithDebounce реагує на рух не частіше, ніж раз на cooldown:
 // зберігає знімок-подію, записує кліп і шле сповіщення в Telegram.
-func watchMotionWithDebounce(ctx context.Context, cfg *config.Config, cam *camera.Client,
+func watchMotionWithDebounce(ctx context.Context, cfg *config.Config, cam camera.Camera,
 	st *store.Store, rec *recorder.Recorder, tg *bot.Bot) {
 
 	const cooldown = 30 * time.Second
@@ -232,7 +250,7 @@ func runSearchTest(query string) {
 	fmt.Printf("Reply:  %s\n", q.Reply)
 }
 
-func runMotionTest(cam *camera.Client) {
+func runMotionTest(cam camera.Camera) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -255,7 +273,7 @@ func runMotionTest(cam *camera.Client) {
 	fmt.Println("Готово.")
 }
 
-func runSelfTest(cam *camera.Client, dataDir string) {
+func runSelfTest(cam camera.Camera, dataDir string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 

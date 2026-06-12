@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api'
+import { api, Capabilities } from '../api'
 
-export function LiveView() {
+export function LiveView({ caps }: { caps?: Capabilities }) {
   const [src, setSrc] = useState(api.liveURL())
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState('')
+  const [online, setOnline] = useState(true)
   const timer = useRef<number>()
 
   useEffect(() => {
@@ -71,8 +72,22 @@ export function LiveView() {
   return (
     <div className="live">
       <div className="live-frame">
-        <img src={src} alt="live" />
-        <span className="live-badge">● LIVE</span>
+        <img
+          src={src}
+          alt="live"
+          className={online ? '' : 'hidden'}
+          onLoad={() => setOnline(true)}
+          onError={() => setOnline(false)}
+        />
+        {online ? (
+          <span className="live-badge">● LIVE</span>
+        ) : (
+          <div className="live-offline">
+            <span className="live-offline-icon">📵</span>
+            <p>Камера недоступна</p>
+            <small>Очікую підключення…</small>
+          </div>
+        )}
       </div>
 
       <div className="controls">
@@ -83,14 +98,18 @@ export function LiveView() {
           {busy === 'clip' ? 'запис…' : '🎬 Кліп'}
         </button>
 
-        <div className="lens-group">
-          <span className="lens-label">Об'єктив:</span>
-          <button className="btn ghost" onClick={() => lens('zoom_out', '🔍 Зум −')} disabled={!!busy}>🔍−</button>
-          <button className="btn ghost" onClick={() => lens('zoom_in', '🔍 Зум +')} disabled={!!busy}>🔍+</button>
-          <button className="btn ghost" onClick={() => lens('focus_far', '🎯 Фокус далі')} disabled={!!busy}>фокус −</button>
-          <button className="btn ghost" onClick={() => lens('focus_near', '🎯 Фокус ближче')} disabled={!!busy}>фокус +</button>
-          <button className="btn ghost" onClick={flip} disabled={!!busy}>🔄 flip</button>
-        </div>
+        {(caps?.lens || caps?.flip) && (
+          <div className="lens-group">
+            <span className="lens-label">Об'єктив:</span>
+            {caps?.lens && <>
+              <button className="btn ghost" onClick={() => lens('zoom_out', '🔍 Зум −')} disabled={!!busy}>🔍−</button>
+              <button className="btn ghost" onClick={() => lens('zoom_in', '🔍 Зум +')} disabled={!!busy}>🔍+</button>
+              <button className="btn ghost" onClick={() => lens('focus_far', '🎯 Фокус далі')} disabled={!!busy}>фокус −</button>
+              <button className="btn ghost" onClick={() => lens('focus_near', '🎯 Фокус ближче')} disabled={!!busy}>фокус +</button>
+            </>}
+            {caps?.flip && <button className="btn ghost" onClick={flip} disabled={!!busy}>🔄 flip</button>}
+          </div>
+        )}
       </div>
 
       {msg && <div className="toast">{msg}</div>}

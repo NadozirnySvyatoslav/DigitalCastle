@@ -13,14 +13,6 @@ import (
 	"time"
 )
 
-// MotionEvent — подія детектора руху.
-type MotionEvent struct {
-	Type        string // напр. "VMD"
-	State       string // "active" | "inactive"
-	Description string
-	At          time.Time
-}
-
 // alertNotification відображає XML <EventNotificationAlert>.
 type alertNotification struct {
 	EventType        string `xml:"eventType"`

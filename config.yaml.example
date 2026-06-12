@@ -1,14 +1,19 @@
 camera:
-  host: "192.168.1.64"
-  username: "admin"
-  password: "CHANGEME"
+  # тип драйвера: "hikvision" (повний функціонал: апаратний детектор руху,
+  # зум/фокус, синхронізація часу) або "generic" (будь-яка RTSP-камера:
+  # знімки й програмний детектор руху через ffmpeg)
+  type: "hikvision"
+  host: "192.168.1.64"          # потрібен лише для hikvision (ISAPI)
+  username: "admin"             # потрібен лише для hikvision
+  password: "CHANGEME"          # потрібен лише для hikvision
+  # RTSP-потоки потрібні для обох типів (для generic — головне джерело)
   rtsp_main: "rtsp://admin:CHANGEME@192.168.1.64:554/Streaming/Channels/101"
   rtsp_sub: "rtsp://admin:CHANGEME@192.168.1.64:554/Streaming/Channels/102"
 
 telegram:
   token: "PUT-YOUR-BOT-TOKEN-HERE"
   chat_id: 0              # основний чат (надішли боту /id або /start, візьми ID)
-  allowed_chats: []       # додаткові дозволені чати/групи, напр. [-5293721438]
+  allowed_chats: []       # додаткові дозволені чати/групи, напр. [-1001234567890]
   notify_on_motion: true
 
 capture:

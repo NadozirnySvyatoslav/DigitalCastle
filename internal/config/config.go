@@ -56,11 +56,13 @@ type Retention struct {
 }
 
 type Camera struct {
-	Host     string `yaml:"host"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	RTSPMain string `yaml:"rtsp_main"`
-	RTSPSub  string `yaml:"rtsp_sub"`
+	Type            string  `yaml:"type"` // "hikvision" (типово) | "generic"
+	Host            string  `yaml:"host"`
+	Username        string  `yaml:"username"`
+	Password        string  `yaml:"password"`
+	RTSPMain        string  `yaml:"rtsp_main"`
+	RTSPSub         string  `yaml:"rtsp_sub"`
+	MotionThreshold float64 `yaml:"motion_threshold"` // generic: поріг детекції руху 0..1 (типово 0.05)
 }
 
 type Telegram struct {
@@ -130,8 +132,15 @@ func Load(path string) (*Config, error) {
 	}
 	c.Capture.SnapshotInterval = d
 
-	if c.Camera.Host == "" {
-		return nil, fmt.Errorf("camera.host порожній")
+	switch c.Camera.Type {
+	case "", "hikvision":
+		if c.Camera.Host == "" {
+			return nil, fmt.Errorf("camera.host порожній (потрібен для hikvision)")
+		}
+	default: // generic та інші — потрібен лише rtsp_main
+		if c.Camera.RTSPMain == "" {
+			return nil, fmt.Errorf("camera.rtsp_main порожній (потрібен для %s)", c.Camera.Type)
+		}
 	}
 	if c.Capture.DataDir == "" {
 		c.Capture.DataDir = "./data"

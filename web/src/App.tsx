@@ -7,15 +7,30 @@ import { Settings } from './components/Settings'
 
 type Tab = 'live' | 'snapshots' | 'events' | 'settings'
 
+const TABS: Tab[] = ['live', 'snapshots', 'events', 'settings']
+
 export default function App() {
   const [status, setStatus] = useState<Status | null>(null)
-  const [tab, setTab] = useState<Tab>('live')
+  const [tab, setTabState] = useState<Tab>(
+    () => (TABS.includes(location.hash.slice(1) as Tab) ? (location.hash.slice(1) as Tab) : 'live'),
+  )
+  const setTab = (t: Tab) => {
+    setTabState(t)
+    location.hash = t
+  }
 
   useEffect(() => {
     const load = () => api.status().then(setStatus).catch(() => setStatus(null))
     load()
     const t = setInterval(load, 10000)
-    return () => clearInterval(t)
+    const onHash = () => {
+      if (TABS.includes(location.hash.slice(1) as Tab)) setTabState(location.hash.slice(1) as Tab)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => {
+      clearInterval(t)
+      window.removeEventListener('hashchange', onHash)
+    }
   }, [])
 
   return (
@@ -55,7 +70,7 @@ export default function App() {
       </nav>
 
       <main className="main">
-        {tab === 'live' && <LiveView />}
+        {tab === 'live' && <LiveView caps={status?.capabilities} />}
         {tab === 'snapshots' && <Gallery />}
         {tab === 'events' && <Events />}
         {tab === 'settings' && <Settings />}

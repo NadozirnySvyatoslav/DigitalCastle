@@ -12,20 +12,22 @@ import (
 	"github.com/icholy/digest"
 )
 
-// Client спілкується з камерою по ISAPI.
+// Client — драйвер камери Hikvision (ISAPI). Реалізує інтерфейс Camera.
 type Client struct {
-	baseURL string
-	http    *http.Client // звичайні запити (з таймаутом)
-	stream  *http.Client // довгоживучі потоки (без таймауту, керується через ctx)
+	baseURL  string
+	rtspMain string
+	http     *http.Client // звичайні запити (з таймаутом)
+	stream   *http.Client // довгоживучі потоки (без таймауту, керується через ctx)
 }
 
-// New створює клієнт. host — IP або хост камери (без схеми).
-func New(host, username, password string) *Client {
+// newHikvision створює Hikvision-драйвер. host — IP або хост камери (без схеми).
+func newHikvision(host, username, password, rtspMain string) *Client {
 	mkTransport := func() *digest.Transport {
 		return &digest.Transport{Username: username, Password: password}
 	}
 	return &Client{
-		baseURL: "http://" + host,
+		baseURL:  "http://" + host,
+		rtspMain: rtspMain,
 		http: &http.Client{
 			Timeout:   15 * time.Second,
 			Transport: mkTransport(),
@@ -35,6 +37,21 @@ func New(host, username, password string) *Client {
 			// тривалість керується через context у викликах
 			Transport: mkTransport(),
 		},
+	}
+}
+
+// RTSPMain повертає URL головного RTSP-потоку.
+func (c *Client) RTSPMain() string { return c.rtspMain }
+
+// Capabilities — Hikvision підтримує повний набір функцій.
+func (c *Client) Capabilities() Capabilities {
+	return Capabilities{
+		Driver:         "hikvision",
+		Lens:           true,
+		Flip:           true,
+		HardwareMotion: true,
+		MotionConfig:   true,
+		TimeSync:       true,
 	}
 }
 

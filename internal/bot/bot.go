@@ -20,14 +20,14 @@ type Bot struct {
 	api         *api
 	chats       []int64        // усі дозволені чати (сповіщення йдуть в усі)
 	allowed     map[int64]bool // швидка перевірка дозволу команд
-	cam         *camera.Client
+	cam         camera.Camera
 	rec         *recorder.Recorder
 	store       *store.Store
 	llm         *llm.Client // може бути nil, якщо LLM не налаштовано
 	clipSeconds int
 }
 
-func New(token string, chats []int64, cam *camera.Client, rec *recorder.Recorder,
+func New(token string, chats []int64, cam camera.Camera, rec *recorder.Recorder,
 	st *store.Store, llmClient *llm.Client, clipSeconds int) *Bot {
 	allowed := make(map[int64]bool, len(chats))
 	for _, id := range chats {
@@ -80,7 +80,7 @@ func (b *Bot) BroadcastVideoFile(ctx context.Context, path, caption string) erro
 	return nil
 }
 
-const helpText = `🎥 Камера Hikvision — команди:
+const helpText = `🎥 DigitalCastle — команди:
 /snap — зробити знімок зараз
 /clip — записати короткий відеокліп
 /status — стан камери
@@ -192,15 +192,26 @@ func (b *Bot) handle(ctx context.Context, chatID int64, text string) {
 	case "/status":
 		b.handleStatus(ctx, chatID)
 
-	case "/zoom_in":
-		b.lens(ctx, chatID, b.cam.ZoomIn, "🔍 Зум +")
-	case "/zoom_out":
-		b.lens(ctx, chatID, b.cam.ZoomOut, "🔍 Зум −")
-	case "/focus_near":
-		b.lens(ctx, chatID, b.cam.FocusNear, "🎯 Фокус ближче")
-	case "/focus_far":
-		b.lens(ctx, chatID, b.cam.FocusFar, "🎯 Фокус далі")
+	case "/zoom_in", "/zoom_out", "/focus_near", "/focus_far":
+		if !b.cam.Capabilities().Lens {
+			b.reply(ctx, chatID, "🔧 Ця камера не підтримує керування об'єктивом.")
+			return
+		}
+		switch cmd {
+		case "/zoom_in":
+			b.lens(ctx, chatID, b.cam.ZoomIn, "🔍 Зум +")
+		case "/zoom_out":
+			b.lens(ctx, chatID, b.cam.ZoomOut, "🔍 Зум −")
+		case "/focus_near":
+			b.lens(ctx, chatID, b.cam.FocusNear, "🎯 Фокус ближче")
+		case "/focus_far":
+			b.lens(ctx, chatID, b.cam.FocusFar, "🎯 Фокус далі")
+		}
 	case "/flip":
+		if !b.cam.Capabilities().Flip {
+			b.reply(ctx, chatID, "🔧 Ця камера не підтримує переворот зображення.")
+			return
+		}
 		on, err := b.cam.ToggleFlip(ctx)
 		if err != nil {
 			b.reply(ctx, chatID, "❌ "+err.Error())
