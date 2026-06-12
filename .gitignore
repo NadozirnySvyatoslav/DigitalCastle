@@ -1,0 +1,19 @@
+# секрети
+config.yaml
+.env
+
+# дані (знімки, записи, БД)
+/data/
+
+# артефакти розвідки
+/scratch/
+
+# збірка
+/nvr
+/bin/
+web/node_modules/
+web/dist/
+
+# Go
+*.test
+*.out
