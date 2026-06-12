@@ -1,0 +1,87 @@
+@startuml architecture
+title DigitalCastle — архітектура
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 13
+skinparam roundCorner 12
+skinparam linetype ortho
+skinparam nodesep 28
+skinparam ranksep 42
+skinparam ArrowColor #5B6B7B
+skinparam ArrowFontColor #6B7785
+skinparam ArrowFontSize 11
+
+skinparam rectangle {
+  BorderColor #C7D0DA
+  BackgroundColor #F4F7FA
+  FontColor #1B2733
+}
+skinparam package {
+  BorderColor #9AA7B4
+  BackgroundColor #EAEFF4
+  FontColor #1B2733
+  FontStyle bold
+}
+skinparam cloud {
+  BorderColor #C7D0DA
+  BackgroundColor #EEF2F6
+}
+skinparam database {
+  BorderColor #C7D0DA
+  BackgroundColor #EEF2F6
+}
+skinparam actor {
+  BorderColor #2F81F7
+  Color #2F81F7
+}
+
+' ===== зовнішні системи (джерела/споживачі) =====
+actor "Користувач" as user
+rectangle "IP-камера\nHikvision / будь-яка RTSP" as cam #FFF3E0
+cloud "Telegram" as tg #E8F0FE
+cloud "Azure OpenAI\ngpt-4o-mini" as azure #E8F0FE
+rectangle "ffmpeg" as ffmpeg #FDECEC
+
+' ===== межі застосунку =====
+package "Веб-інтерфейс — React + Vite" as webpkg {
+  rectangle "Live · Галерея · Події · Налаштування" as web
+}
+
+package "DigitalCastle — Go-демон" as daemon {
+  rectangle "**api**\nREST + статика" as api
+  rectangle "**bot**\nTelegram, inline-кнопки" as bot
+  rectangle "**llm**\nрозбір запитів пошуку" as llm
+  rectangle "**camera**\nінтерфейс + драйвери\nhikvision · generic" as camera
+  rectangle "**capture**\nзнімки за розкладом" as capture
+  rectangle "**recorder**\nвідеокліпи" as recorder
+  rectangle "**cleanup**\nавтоочистка" as cleanup
+  database "**store**\nSQLite + файли" as store
+}
+
+' ===== верхній шар: користувач і входи =====
+user --> web
+user --> tg
+web --> api : REST / медіа
+tg <--> bot : Bot API
+
+' ===== всередині демона =====
+api --> camera
+api --> store
+bot --> camera
+bot --> store
+bot --> llm
+capture --> camera
+capture --> store
+camera --> recorder : подія руху
+recorder --> store
+cleanup --> store
+
+' ===== виходи до зовнішніх систем =====
+camera --> cam : RTSP / ISAPI
+camera ..> ffmpeg : generic: знімок, рух
+recorder --> ffmpeg : запис із RTSP
+llm --> azure : HTTPS
+
+@enduml
