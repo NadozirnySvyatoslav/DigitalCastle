@@ -47,10 +47,17 @@ async function getJSON<T>(url: string): Promise<T> {
   return r.json() as Promise<T>
 }
 
+export interface Page<T> {
+  items: T[]
+  total: number
+}
+
 export const api = {
   status: () => getJSON<Status>('/api/status'),
-  snapshots: (limit = 100) => getJSON<Snapshot[]>(`/api/snapshots?limit=${limit}`),
-  events: (limit = 100) => getJSON<EventItem[]>(`/api/events?limit=${limit}`),
+  snapshots: (limit = 100, offset = 0) =>
+    getJSON<Page<Snapshot>>(`/api/snapshots?limit=${limit}&offset=${offset}`),
+  events: (limit = 100, offset = 0) =>
+    getJSON<Page<EventItem>>(`/api/events?limit=${limit}&offset=${offset}`),
   capture: () => fetch('/api/snapshot', { method: 'POST' }).then((r) => r.json()),
   clip: () => fetch('/api/clip', { method: 'POST' }).then((r) => r.json()),
   lens: (action: 'zoom_in' | 'zoom_out' | 'focus_near' | 'focus_far') =>

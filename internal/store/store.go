@@ -78,9 +78,9 @@ func (s *Store) AddSnapshot(snap Snapshot) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (s *Store) ListSnapshots(limit int) ([]Snapshot, error) {
+func (s *Store) ListSnapshots(limit, offset int) ([]Snapshot, error) {
 	rows, err := s.db.Query(
-		`SELECT id, path, taken_at, size, trigger FROM snapshots ORDER BY taken_at DESC LIMIT ?`, limit,
+		`SELECT id, path, taken_at, size, trigger FROM snapshots ORDER BY taken_at DESC LIMIT ? OFFSET ?`, limit, offset,
 	)
 	if err != nil {
 		return nil, err
@@ -180,9 +180,9 @@ func (s *Store) AddEvent(e Event) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (s *Store) ListEvents(limit int) ([]Event, error) {
+func (s *Store) ListEvents(limit, offset int) ([]Event, error) {
 	rows, err := s.db.Query(
-		`SELECT id, type, path, note, created_at FROM events ORDER BY created_at DESC LIMIT ?`, limit,
+		`SELECT id, type, path, note, created_at FROM events ORDER BY created_at DESC LIMIT ? OFFSET ?`, limit, offset,
 	)
 	if err != nil {
 		return nil, err
@@ -197,6 +197,20 @@ func (s *Store) ListEvents(limit int) ([]Event, error) {
 		out = append(out, e)
 	}
 	return out, rows.Err()
+}
+
+// CountSnapshots повертає загальну кількість знімків.
+func (s *Store) CountSnapshots() (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM snapshots`).Scan(&n)
+	return n, err
+}
+
+// CountEvents повертає загальну кількість подій.
+func (s *Store) CountEvents() (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM events`).Scan(&n)
+	return n, err
 }
 
 // DeleteSnapshotByPath видаляє рядок знімка за шляхом до файлу.

@@ -107,7 +107,13 @@ func (s *Server) handleCapture(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
 	limit := queryInt(r, "limit", 100)
-	snaps, err := s.store.ListSnapshots(limit)
+	offset := queryInt(r, "offset", 0)
+	snaps, err := s.store.ListSnapshots(limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	total, err := s.store.CountSnapshots()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -120,12 +126,18 @@ func (s *Server) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
 	for _, sn := range snaps {
 		out = append(out, item{Snapshot: sn, URL: s.mediaURL(sn.Path)})
 	}
-	writeJSON(w, out)
+	writeJSON(w, map[string]any{"items": out, "total": total})
 }
 
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	limit := queryInt(r, "limit", 100)
-	events, err := s.store.ListEvents(limit)
+	offset := queryInt(r, "offset", 0)
+	events, err := s.store.ListEvents(limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	total, err := s.store.CountEvents()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -142,7 +154,7 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, item{Event: e, URL: url})
 	}
-	writeJSON(w, out)
+	writeJSON(w, map[string]any{"items": out, "total": total})
 }
 
 func (s *Server) handleClip(w http.ResponseWriter, r *http.Request) {

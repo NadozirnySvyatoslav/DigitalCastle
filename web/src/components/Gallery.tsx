@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
 import { api, Snapshot } from '../api'
+import { Pager } from './Pager'
+
+const PAGE_SIZE = 24
 
 export function Gallery() {
   const [snaps, setSnaps] = useState<Snapshot[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
   const [zoom, setZoom] = useState<Snapshot | null>(null)
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    api.snapshots(200).then(setSnaps).catch((e) => setErr(e.message))
-  }, [])
+    api
+      .snapshots(PAGE_SIZE, page * PAGE_SIZE)
+      .then((p) => {
+        setSnaps(p.items)
+        setTotal(p.total)
+      })
+      .catch((e) => setErr(e.message))
+  }, [page])
 
   if (err) return <div className="empty">Помилка: {err}</div>
-  if (snaps.length === 0) return <div className="empty">Знімків ще немає</div>
+  if (total === 0) return <div className="empty">Знімків ще немає</div>
 
   return (
     <div>
@@ -27,6 +38,8 @@ export function Gallery() {
           </figure>
         ))}
       </div>
+
+      <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
 
       {zoom && (
         <div className="lightbox" onClick={() => setZoom(null)}>

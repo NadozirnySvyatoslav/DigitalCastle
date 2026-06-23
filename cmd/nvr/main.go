@@ -95,7 +95,7 @@ func main() {
 			log.Fatalf("capture: %v", err)
 		}
 		fmt.Printf("Знімок: %s\n", path)
-		snaps, _ := st.ListSnapshots(5)
+		snaps, _ := st.ListSnapshots(5, 0)
 		fmt.Printf("У БД записів: %d (останній id=%d)\n", len(snaps), snaps[0].ID)
 		return
 	}
