@@ -146,8 +146,12 @@ func (b *Bot) Run(ctx context.Context) {
 }
 
 func (b *Bot) handle(ctx context.Context, chatID int64, text string) {
+	// не-текстове повідомлення (фото, стікер, голосове, системна подія) → ігнор
+	if text == "" {
+		return
+	}
 	// не команда (без "/") → природномовний пошук через LLM
-	if text != "" && !strings.HasPrefix(text, "/") {
+	if !strings.HasPrefix(text, "/") {
 		b.handleSearch(ctx, chatID, text)
 		return
 	}
